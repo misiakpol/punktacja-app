@@ -66,7 +66,7 @@
           <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-500/20 via-transparent to-transparent pointer-events-none z-0"></div>
 
           <h2 class="text-3xl font-black font-lemon tracking-widest mb-6 z-10 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 text-center">
-            KRÓL<br>OKRESU
+            KRÓL<br>TURY
           </h2>
 
           <!-- Skalowalny kontener zdjęcia (aspect-square robi magię) -->

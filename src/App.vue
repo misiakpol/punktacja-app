@@ -88,11 +88,21 @@
     <!-- 🟢 EKRAN 2: HISTORIA (Tabela) -->
     <div 
       v-show="currentView === 'history'" 
-      class="flex-grow flex flex-col p-4 pt-6 pb-32 overflow-hidden bg-[#141414]"
+      class="flex-grow flex flex-col p-4 pt-10 pb-32 overflow-hidden bg-[#141414]"
     >
-      <h1 class="text-3xl font-black font-lemon tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 mb-6 text-center">
-        HISTORIA
-      </h1>
+      <!-- NAGŁÓWEK Z IKONĄ EDYCJI -->
+      <div class="relative w-full max-w-lg mx-auto flex justify-center items-center mb-6">
+        <h2 class="text-2xl font-lemon tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">
+          HISTORIA
+        </h2>
+        
+        <!-- Przycisk ołówka (Tryb usuwania) -->
+        <button @click="toggleDeleteMode" class="absolute right-2 p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
+          <svg v-if="!isDeleteMode" class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+          <!-- Czerwony krzyżyk (Wyjście z trybu) -->
+          <svg v-else class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
       
       <!-- FILTRY (Rozwijane selecty ze spójnym, mocnym wypełnieniem po zaznaczeniu) -->
       <div class="w-full flex flex-wrap justify-center gap-3 mb-6 max-w-lg mx-auto">
@@ -147,14 +157,30 @@
 
       </div>
 
+      <!-- PANEL AKCJI - Pojawia się, gdy włączony jest tryb usuwania (ołówek) -->
+      <div v-if="isDeleteMode" class="w-full max-w-lg mx-auto flex justify-between items-center mb-4 px-2">
+        <span class="text-sm font-inter text-gray-400">
+          Zaznaczono: <span class="text-white font-bold">{{ selectedMatches.length }}</span>
+        </span>
+        <button 
+          @click="deleteSelected" 
+          :disabled="selectedMatches.length === 0" 
+          :class="['px-4 py-2 rounded-xl font-bold text-sm transition-all', selectedMatches.length > 0 ? 'bg-red-500/20 text-red-400 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-gray-800 text-gray-600 cursor-not-allowed border border-transparent']"
+        >
+          Usuń zaznaczone
+        </button>
+      </div>
       <!-- KONTENER TABELI Z POZIOMYM SCROLLEM -->
       <div class="w-full max-w-lg mx-auto bg-[#1e1e1e] rounded-2xl border border-white/10 overflow-x-auto shadow-2xl pb-2">
         <table class="w-full text-left border-collapse whitespace-nowrap text-sm">
           
-          <!-- NAGŁÓWKI (Klikalne, sortujące) -->
           <thead class="bg-[#2a2a2a] text-gray-400 font-inter text-xs uppercase tracking-wider">
             <tr>
-              <!-- ZAMROŻONA KOLUMNA DATY -->
+              <!-- NOWA KOLUMNA CHECKBOXÓW W NAGŁÓWKU -->
+              <th v-if="isDeleteMode" class="p-5 border-b border-white/5 text-center">
+                🗑️
+              </th>
+              
               <th @click="handleSort('match_date')" class="sticky left-0 bg-[#2a2a2a] z-10 p-5 cursor-pointer hover:text-white transition-colors border-b border-white/5 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                 <div class="flex items-center gap-2">
                   Data
@@ -164,13 +190,13 @@
               <th @click="handleSort('category_id')" class="p-5 cursor-pointer hover:text-white transition-colors border-b border-white/5">
                 <div class="flex items-center gap-2">
                   Dyscyplina
-                  <span v-if="sortBy === 'category_id'" class="text-[#00CEC4]">{{ sortDesc ? '↓' : '↑' }}</span>
+                  <span v-if="sortBy === 'category_id'" class="text-purple-400">{{ sortDesc ? '↓' : '↑' }}</span>
                 </div>
               </th>
               <th @click="handleSort('winner_id')" class="p-5 cursor-pointer hover:text-white transition-colors border-b border-white/5">
                 <div class="flex items-center gap-2">
                   Zwycięzca
-                  <span v-if="sortBy === 'winner_id'" class="text-blue-500">{{ sortDesc ? '↓' : '↑' }}</span>
+                  <span v-if="sortBy === 'winner_id'" class="text-purple-400">{{ sortDesc ? '↓' : '↑' }}</span>
                 </div>
               </th>
             </tr>
@@ -180,6 +206,16 @@
           <tbody class="text-gray-200 font-inter font-medium">
             <tr v-for="match in processedResults" :key="match.id" class="hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
               
+              <!-- KOLUMNA CHECKBOXÓW W WIERSZU -->
+              <td v-if="isDeleteMode" class="p-5 border-b border-white/5 text-center bg-[#242424]">
+                <input 
+                  type="checkbox" 
+                  :value="match.id" 
+                  v-model="selectedMatches" 
+                  class="w-5 h-5 accent-red-500 cursor-pointer rounded bg-[#141414] border-gray-600 transition-all"
+                >
+              </td>
+
               <!-- ZAMROŻONA KOLUMNA DATY -->
               <td class="sticky left-0 bg-[#1e1e1e] z-10 p-5 shadow-[4px_0_10px_rgba(0,0,0,0.15)] text-gray-300">
                 {{ match.match_date }}
@@ -304,7 +340,13 @@
           <!-- 4. GŁÓWNY PRZYCISK ZAPISU -->
           <button 
             @click="submitMatch"
-            class="mt-6 mb-6 w-full py-4 rounded-full font-bold uppercase tracking-widest text-white transition-all duration-300 shadow-[0_0_20px_rgba(242,129,0,0.4)] hover:shadow-[0_0_30px_rgba(242,129,0,0.6)] active:scale-95 bg-[linear-gradient(90deg,_#F28100_0%,_#AA00E3_100%)]"
+            :disabled="!isFormValid"
+            :class="[
+              'mt-6 mb-6 w-full py-4 rounded-full font-bold uppercase tracking-widest transition-all duration-300',
+              isFormValid 
+                ? 'bg-[linear-gradient(90deg,_#F28100_0%,_#AA00E3_100%)] text-white shadow-[0_0_20px_rgba(242,129,0,0.4)] hover:shadow-[0_0_30px_rgba(242,129,0,0.6)] active:scale-95 cursor-pointer' 
+                : 'bg-[linear-gradient(90deg,_#3f3f46_0%,_#18181b_100%)] text-gray-500 opacity-70 cursor-not-allowed shadow-none'
+            ]"
           >
             Zapisz Wynik
           </button>
@@ -390,6 +432,11 @@
   import iconTrophyFull from './assets/trophy-full.svg'
   import iconTrophyLine from './assets/trophy-line.svg'
   
+  // --- WALIDACJA FORMULARZA ---
+  const isFormValid = computed(() => {
+    return newMatchDate.value && selectedCategoryId.value && selectedWinnerId.value
+  })
+
   // 'home' = strona główna z kafelkami, 'history' = tabela
   const allMatches = ref([])
   const currentView = ref('home')
@@ -679,6 +726,50 @@
 
     return data
   })
+
+// --- TRYB EDYCJI I USUWANIA ---
+// --- TRYB EDYCJI I USUWANIA ---
+// --- TRYB EDYCJI I USUWANIA ---
+// --- TRYB EDYCJI I USUWANIA ---
+// --- TRYB EDYCJI I USUWANIA ---
+
+  const isDeleteMode = ref(false)
+  const selectedMatches = ref([]) // Tablica przechowująca ID wyników do usunięcia
+
+  const toggleDeleteMode = () => {
+    isDeleteMode.value = !isDeleteMode.value
+    if (!isDeleteMode.value) {
+      selectedMatches.value = [] // Resetujemy zaznaczenie, gdy wychodzimy z trybu
+    }
+  }
+  
+  // Funkcja usuwająca zaznaczone wyniki z bazy Supabase
+  const deleteSelected = async () => {
+    if (selectedMatches.value.length === 0) return
+    
+    // Proste potwierdzenie, żeby nie usunąć przez przypadek
+    const confirmDelete = confirm(`Czy na pewno chcesz usunąć ${selectedMatches.value.length} wyników?`)
+    if (!confirmDelete) return
+
+    // Usuwamy wiele rekordów naraz, wyszukując po ich ID
+    const { error } = await supabase
+      .from('match_results')
+      .delete()
+      .in('id', selectedMatches.value)
+
+    if (!error) {
+      selectedMatches.value = [] // Czyścimy wybór
+      isDeleteMode.value = false // Wyłączamy tryb
+      
+      // Odświeżamy punkty na głównej stronie i samą tabelę!
+      fetchResults()
+      fetchHistory()
+    } else {
+      console.error("Błąd usuwania:", error)
+      alert("Wystąpił błąd podczas usuwania. Sprawdź logi.")
+    }
+  }
+
 </script>
 
 <style>

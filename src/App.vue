@@ -92,7 +92,7 @@
     >
       <!-- NAGŁÓWEK Z IKONĄ EDYCJI -->
       <div class="relative w-full max-w-lg mx-auto flex justify-center items-center mb-6">
-        <h2 class="text-2xl font-lemon tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">
+        <h2 class="text-3xl font-black font-lemon tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">
           HISTORIA
         </h2>
         
@@ -263,7 +263,7 @@
         v-if="isAddMode" 
         class="absolute inset-0 z-40 bg-[#1e1e1e]/80 backdrop-blur-xl flex flex-col items-center p-6 pt-16 pb-32 overflow-y-auto"
       >
-        <h2 class="text-3xl font-lemon tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#F28100] to-[#AA00E3] mb-8">
+        <h2 class="text-3xl font-black font-lemon tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#F28100] to-[#AA00E3] mb-8">
           NOWY WYNIK
         </h2>
         
@@ -783,6 +783,7 @@
 ::-webkit-scrollbar-track {
   background: transparent; 
   border-radius: 10px;
+  margin: 10px;
 }
 
 /* Sam suwak (uchwyt) */
@@ -794,5 +795,10 @@
 /* Kolor suwaka po najechaniu / dotknięciu */
 ::-webkit-scrollbar-thumb:hover {
   background: #555555; 
+}
+
+/* Krawędź rogu scrollbara (jeśli jest widoczny) */
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 </style>

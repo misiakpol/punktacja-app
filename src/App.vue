@@ -426,6 +426,7 @@
   import imgRemis from './assets/remis.png'
   import iconTenis from './assets/tennis.png'
   import iconStrzelnica from './assets/target.png'
+  import iconKosci from './assets/dice.png'
 
   import iconHomeFull from './assets/house-chimney-full.svg'
   import iconHomeLine from './assets/house-chimney-line.svg'
@@ -626,7 +627,8 @@
   // UWAGA: Upewnij się, że "id" odpowiada temu w bazie Supabase!
   const availableCategories = ref([
     { id: 1, name: 'Tenis', icon: iconTenis }, 
-    { id: 2, name: 'Strzelnica', icon: iconStrzelnica }
+    { id: 2, name: 'Strzelnica', icon: iconStrzelnica },
+    { id: 3, name: 'Kości', icon: iconKosci }
   ])
 
   const availablePlayers = ref([

@@ -312,7 +312,7 @@
             <div class="flex flex-wrap justify-center gap-4 w-full">
               
               <button 
-                v-for="cat in availableCategories" 
+                v-for="cat in formCategories" 
                 :key="cat.id"
                 @click="selectedCategoryId = cat.id"
                 :class="[
@@ -694,6 +694,11 @@
   const selectedWinnerId = ref(null)
 
   const availableCategories = ref([])
+
+  const formCategories = computed(() => {
+    const allowed = ['Tenis', 'Strzelnica', 'Kości', 'Inne']
+    return availableCategories.value.filter(c => allowed.includes(c.name))
+  })
 
   const fetchCategories = async () => {
     const { data, error } = await supabase.from('categories').select('*').order('id')

@@ -16,15 +16,22 @@
       </div>
 
       <!-- Wybór okresu: -->
-      <div class="mt-4 w-full z-10 max-w-sm">
+      <div class="mt-4 w-full z-10 max-w-sm flex gap-2">
         <select 
           v-model="selectedPeriodId" 
-          class="w-full bg-[#2a2a2a] text-white font-inter border border-purple-500 rounded-lg p-3 outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer appearance-none text-center"
+          class="flex-1 bg-[#2a2a2a] text-white font-inter border border-purple-500 rounded-lg p-3 outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer appearance-none text-center"
         >
           <option v-for="period in periods" :key="period.id" :value="period.id">
             {{ period.period_name }}
           </option>
         </select>
+        <button 
+          @click="createNewPeriod"
+          class="flex items-center justify-center bg-[#2a2a2a] text-white px-4 border border-purple-500 rounded-lg hover:bg-purple-500/20 transition-all shadow-[0_0_10px_rgba(168,85,247,0.2)] active:scale-95"
+          title="Dodaj nową turę"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        </button>
       </div>
 
       
@@ -54,6 +61,20 @@
              <div :class="['h-3 w-full rounded-full', getIndicatorStyles(mateuszWins, adrianWins).fill]"></div>
           </div>
         </div>
+      </div>
+      
+      <!-- KOMUNIKAT O KOŃCU GRY (DO 10 PUNKTÓW) -->
+      <div v-if="adrianWins >= 10 || mateuszWins >= 10" class="w-full max-w-sm mt-4 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-6 text-center shadow-[0_0_25px_rgba(239,68,68,0.4)] z-10 border border-white/20">
+        <h3 class="text-3xl font-black font-lemon mb-2 text-white drop-shadow-md">KONIEC GRY!</h3>
+        <p class="text-white/90 font-inter font-medium mb-5 uppercase tracking-wider text-sm">
+          Wymagane 10 zwycięstw zostało osiągnięte.
+        </p>
+        <button 
+          @click="createNewPeriod"
+          class="bg-white text-red-600 font-black px-6 py-3 w-full rounded-xl uppercase tracking-widest hover:bg-gray-100 transition-transform shadow-lg active:scale-95"
+        >
+          Zacznij nową turę
+        </button>
       </div>
       
       <!-- KRÓL OKRESU -->
@@ -479,7 +500,40 @@
       const activePeriod = data.find(p => p.is_active)
       if (activePeriod) {
         selectedPeriodId.value = activePeriod.id
+      } else if (data.length > 0) {
+        // Fallback do ostatniego jeśli żaden nie jest aktywny
+        selectedPeriodId.value = data[data.length - 1].id
       }
+    }
+  }
+
+  // Funkcja dodawania nowej tury
+  const createNewPeriod = async () => {
+    const confirmCreate = confirm("Czy na pewno chcesz rozpocząć nową turę?")
+    if (!confirmCreate) return
+    
+    const periodName = `Tura ${periods.value.length + 1}`
+
+    // Najpierw dezaktywujemy stare tury, żeby nowa była jedyną aktywną
+    if (periods.value.length > 0) {
+      await supabase.from('periods').update({ is_active: false }).neq('id', 0)
+    }
+
+    // Dodajemy nową turę
+    const { data, error } = await supabase
+      .from('periods')
+      .insert({ period_name: periodName.trim(), is_active: true })
+      .select()
+      .single()
+
+    if (!error && data) {
+      periods.value.push(data)
+      selectedPeriodId.value = data.id
+      // Odświeżamy punkty (będą 0:0 w nowej turze)
+      fetchResults()
+    } else {
+      console.error("Błąd tworzenia tury:", error)
+      alert("Wystąpił błąd podczas dodawania nowej tury.")
     }
   }
 

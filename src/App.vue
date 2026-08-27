@@ -313,6 +313,16 @@
               </button>
 
             </div>
+
+            <!-- POLE TEKSTOWE DLA INNE -->
+            <div v-if="selectedCategoryId === 'other'" class="mt-4 w-full">
+              <input 
+                type="text" 
+                v-model="customCategoryName"
+                placeholder="Wpisz nazwę (np. Kręgle, Poker)"
+                class="w-full bg-[#2a2a2a] text-white font-inter rounded-xl p-4 outline-none border border-white/10 focus:border-[#F28100] focus:ring-1 focus:ring-[#F28100] transition-colors"
+              />
+            </div>
           </div>
 
           <!-- 3. ZWYCIĘZCA -->
@@ -427,6 +437,7 @@
   import iconTenis from './assets/tennis.png'
   import iconStrzelnica from './assets/target.png'
   import iconKosci from './assets/dice.png'
+  import iconInne from './assets/poker-cards.png'
 
   import iconHomeFull from './assets/house-chimney-full.svg'
   import iconHomeLine from './assets/house-chimney-line.svg'
@@ -434,8 +445,12 @@
   import iconTrophyLine from './assets/trophy-line.svg'
   
   // --- WALIDACJA FORMULARZA ---
+  const customCategoryName = ref('')
+  
   const isFormValid = computed(() => {
-    return newMatchDate.value && selectedCategoryId.value && selectedWinnerId.value
+    if (!newMatchDate.value || !selectedCategoryId.value || !selectedWinnerId.value) return false
+    if (selectedCategoryId.value === 'other' && !customCategoryName.value.trim()) return false
+    return true
   })
 
   // 'home' = strona główna z kafelkami, 'history' = tabela
@@ -510,6 +525,7 @@
   // 4. Odpal pobieranie okresów od razu przy starcie strony
   onMounted(() => {
     fetchPeriods()
+    fetchCategories()
     fetchHistory()
   })
 
@@ -623,13 +639,27 @@
   const selectedCategoryId = ref(null)
   const selectedWinnerId = ref(null)
 
-  // Przykładowe dane do wygenerowania kafelków. 
-  // UWAGA: Upewnij się, że "id" odpowiada temu w bazie Supabase!
-  const availableCategories = ref([
-    { id: 1, name: 'Tenis', icon: iconTenis }, 
-    { id: 2, name: 'Strzelnica', icon: iconStrzelnica },
-    { id: 3, name: 'Kości', icon: iconKosci }
-  ])
+  const availableCategories = ref([])
+
+  const fetchCategories = async () => {
+    const { data, error } = await supabase.from('categories').select('*').order('id')
+    if (data) {
+      const iconMap = {
+        'Tenis': iconTenis,
+        'Strzelnica': iconStrzelnica,
+        'Kości': iconKosci
+      }
+      
+      const mapped = data.map(c => ({
+        id: c.id,
+        name: c.name,
+        icon: iconMap[c.name] || iconInne
+      }))
+      
+      mapped.push({ id: 'other', name: 'Inne', icon: iconInne })
+      availableCategories.value = mapped
+    }
+  }
 
   const availablePlayers = ref([
     { id: 1, name: 'Adrian' },
@@ -638,19 +668,47 @@
 
   // Funkcja wysyłająca dane do bazy
   const submitMatch = async () => {
-    // Prosta walidacja, czy wszystko wyklikane
-    if (!selectedCategoryId.value || !selectedWinnerId.value) {
-      alert("Musisz wybrać kategorię i zwycięzcę, mistrzu!")
+    if (!isFormValid.value) {
+      alert("Musisz wypełnić wszystkie pola!")
       return
     }
 
-    // Wysyłamy do Supabase TYLKO wymagane pola. id i created_at generują się same.
+    let finalCategoryId = selectedCategoryId.value
+
+    if (finalCategoryId === 'other') {
+      const categoryName = customCategoryName.value.trim()
+      const formattedName = categoryName.charAt(0).toUpperCase() + categoryName.slice(1)
+      
+      let { data: existingCat } = await supabase
+        .from('categories')
+        .select('id')
+        .ilike('name', formattedName)
+        .single()
+        
+      if (existingCat) {
+        finalCategoryId = existingCat.id
+      } else {
+        const { data: newCat, error: insertErr } = await supabase
+          .from('categories')
+          .insert({ name: formattedName })
+          .select('id')
+          .single()
+          
+        if (insertErr) {
+          console.error("Błąd tworzenia kategorii:", insertErr)
+          alert("Wystąpił błąd podczas dodawania nowej kategorii.")
+          return
+        }
+        finalCategoryId = newCat.id
+      }
+    }
+
     const { error } = await supabase
       .from('match_results')
       .insert({
         match_date: newMatchDate.value,
         period_id: selectedPeriodId.value, // Pobieramy automatycznie wybrany okres z głównej strony!
-        category_id: selectedCategoryId.value,
+        category_id: finalCategoryId,
         winner_id: selectedWinnerId.value
       })
 
@@ -660,8 +718,10 @@
       // 2. Resetujemy formularz na wypadek kolejnego dodawania
       selectedCategoryId.value = null
       selectedWinnerId.value = null
+      customCategoryName.value = ''
       // 3. Odświeżamy punkty na głównej stronie, żeby od razu było widać nowy wynik!
       fetchResults()
+      fetchCategories()
       fetchHistory() // Odświeżamy też historię, żeby w tabeli było widać nowy wynik
     } else {
       console.error("Błąd zapisu:", error)

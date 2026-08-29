@@ -246,7 +246,12 @@
               <td class="p-5">
                 <div class="flex items-center gap-2">
                   <img :src="availableCategories.find(c => c.id === match.category_id)?.icon" class="w-5 h-5 opacity-80" />
-                  {{ availableCategories.find(c => c.id === match.category_id)?.name || 'Nieznana' }}
+                  <span v-if="availableCategories.find(c => c.id === match.category_id)?.name === 'Inne' && match.subcategory">
+                    {{ match.subcategory }}
+                  </span>
+                  <span v-else>
+                    {{ availableCategories.find(c => c.id === match.category_id)?.name || 'Nieznana' }}
+                  </span>
                 </div>
               </td>
               
@@ -336,7 +341,7 @@
             </div>
 
             <!-- POLE TEKSTOWE DLA INNE -->
-            <div v-if="selectedCategoryId === 'other'" class="mt-4 w-full">
+            <div v-if="selectedCategoryId && availableCategories.find(c => c.id === selectedCategoryId)?.name === 'Inne'" class="mt-4 w-full">
               <input 
                 type="text" 
                 v-model="customCategoryName"
@@ -470,7 +475,8 @@
   
   const isFormValid = computed(() => {
     if (!newMatchDate.value || !selectedCategoryId.value || !selectedWinnerId.value) return false
-    if (selectedCategoryId.value === 'other' && !customCategoryName.value.trim()) return false
+    const selectedCategory = availableCategories.value.find(c => c.id === selectedCategoryId.value)
+    if (selectedCategory && selectedCategory.name === 'Inne' && !customCategoryName.value.trim()) return false
     return true
   })
 
@@ -566,7 +572,7 @@
   const fetchHistory = async () => {
     const { data, error } = await supabase
       .from('match_results')
-      .select('id, match_date, period_id, category_id, winner_id')
+      .select('id, match_date, period_id, category_id, winner_id, subcategory')
       .order('match_date', { ascending: false }) // Domyślne sortowanie od najnowszych w bazie
 
     if (data) {
@@ -706,7 +712,8 @@
       const iconMap = {
         'Tenis': iconTenis,
         'Strzelnica': iconStrzelnica,
-        'Kości': iconKosci
+        'Kości': iconKosci,
+        'Inne': iconInne
       }
       
       const mapped = data.map(c => ({
@@ -715,7 +722,6 @@
         icon: iconMap[c.name] || iconInne
       }))
       
-      mapped.push({ id: 'other', name: 'Inne', icon: iconInne })
       availableCategories.value = mapped
     }
   }
@@ -732,34 +738,11 @@
       return
     }
 
-    let finalCategoryId = selectedCategoryId.value
+    const selectedCategory = availableCategories.value.find(c => c.id === selectedCategoryId.value)
+    let subcategory = null
 
-    if (finalCategoryId === 'other') {
-      const categoryName = customCategoryName.value.trim()
-      const formattedName = categoryName.charAt(0).toUpperCase() + categoryName.slice(1)
-      
-      let { data: existingCat } = await supabase
-        .from('categories')
-        .select('id')
-        .ilike('name', formattedName)
-        .single()
-        
-      if (existingCat) {
-        finalCategoryId = existingCat.id
-      } else {
-        const { data: newCat, error: insertErr } = await supabase
-          .from('categories')
-          .insert({ name: formattedName })
-          .select('id')
-          .single()
-          
-        if (insertErr) {
-          console.error("Błąd tworzenia kategorii:", insertErr)
-          alert("Wystąpił błąd podczas dodawania nowej kategorii.")
-          return
-        }
-        finalCategoryId = newCat.id
-      }
+    if (selectedCategory && selectedCategory.name === 'Inne') {
+      subcategory = customCategoryName.value.trim()
     }
 
     const { error } = await supabase
@@ -767,8 +750,9 @@
       .insert({
         match_date: newMatchDate.value,
         period_id: selectedPeriodId.value, // Pobieramy automatycznie wybrany okres z głównej strony!
-        category_id: finalCategoryId,
-        winner_id: selectedWinnerId.value
+        category_id: selectedCategoryId.value,
+        winner_id: selectedWinnerId.value,
+        subcategory: subcategory
       })
 
     if (!error) {
